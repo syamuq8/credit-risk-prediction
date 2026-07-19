@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}EMI Loan Calculator{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4 animate-fade-in">
+    <div class="col-md-9">
+        <h2>Loan Calculator & Affordability Planner</h2>
+        <p class="text-muted mb-0">Compute monthly installments (EMI), amortization details, and assess affordability based on banking rules.</p>
+    </div>
+</div>
+
+<div class="row g-4 animate-fade-in delay-1">
+    <!-- Input Form -->
+    <div class="col-lg-5">
+        <div class="glass-card">
+            <h5 class="fw-bold mb-3"><i class="bi bi-sliders text-primary me-2"></i>Configure Parameters</h5>
+            <form id="calcForm">
+                <div class="mb-3">
+                    <label for="calcAmount" class="form-label form-label-custom">Principal Amount ({{ currency_symbol }})</label>
+                    <input type="number" class="form-control form-control-custom" id="calcAmount" value="15000" min="500" required>
+                </div>
+                <div class="mb-3">
+                    <label for="calcRate" class="form-label form-label-custom">Annual Interest Rate (%)</label>
+                    <input type="number" class="form-control form-control-custom" id="calcRate" value="7.5" min="1" max="40" step="0.01" required>
+                </div>
+                <div class="mb-3">
+                    <label for="calcTerm" class="form-label form-label-custom">Tenure Length (Months)</label>
+                    <select class="form-select form-select-custom" id="calcTerm" required>
+                        <option value="12">12 Months (1 yr)</option>
+                        <option value="24">24 Months (2 yrs)</option>
+                        <option value="36" selected>36 Months (3 yrs)</option>
+                        <option value="48">48 Months (4 yrs)</option>
+                        <option value="60">60 Months (5 yrs)</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="calcIncome" class="form-label form-label-custom">Applicant Monthly Income ({{ currency_symbol }})</label>
+                    <input type="number" class="form-control form-control-custom" id="calcIncome" value="5000" min="1" required>
+                </div>
+                <div class="mb-4">
+                    <label for="calcDebts" class="form-label form-label-custom">Existing Monthly Debts ({{ currency_symbol }})</label>
+                    <input type="number" class="form-control form-control-custom" id="calcDebts" value="1000" min="0" required>
+                </div>
+                <button type="submit" class="btn btn-custom btn-primary-custom w-100 py-2.5">
+                    <i class="bi bi-calculator me-1"></i> Calculate Installments
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Calculations Results -->
+    <div class="col-lg-7">
+        <div class="glass-card h-100 d-flex flex-column justify-content-between">
+            <div>
+                <h5 class="fw-bold mb-4"><i class="bi bi-receipt-cutoff text-primary me-2"></i>Amortization Summary</h5>
+                <div class="row g-3 text-center mb-4">
+                    <div class="col-6 col-md-4">
+                        <div class="p-3 rounded bg-secondary bg-opacity-5 border border-secondary border-opacity-5">
+                            <small class="text-muted d-block small mb-1">MONTHLY EMI</small>
+                            <strong class="fs-4 text-primary" id="emiValue">{{ currency_symbol }}0.00</strong>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="p-3 rounded bg-secondary bg-opacity-5 border border-secondary border-opacity-5">
+                            <small class="text-muted d-block small mb-1">TOTAL INTEREST</small>
+                            <strong class="fs-4 text-warning" id="interestValue">{{ currency_symbol }}0.00</strong>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="p-3 rounded bg-secondary bg-opacity-5 border border-secondary border-opacity-5">
+                            <small class="text-muted d-block small mb-1">TOTAL PAYMENT</small>
+                            <strong class="fs-4 text-success" id="paymentValue">{{ currency_symbol }}0.00</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Affordability Analysis Card -->
+                <div class="alert alert-info border-0 bg-secondary bg-opacity-5 mb-4 p-3 rounded" id="affordabilityAlert">
+                    <h6 class="fw-bold text-main mb-1" id="affordabilityTitle"><i class="bi bi-shield-check-fill text-success me-2"></i>Affordability Status</h6>
+                    <p class="small text-muted mb-0" id="affordabilityDesc">Submit details to evaluate debt ratio parameters.</p>
+                </div>
+            </div>
+            
+            <!-- Pie Chart -->
+            <div class="mt-2" style="position: relative; height: 200px;">
+                <canvas id="emiPieChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const form = document.getElementById("calcForm");
+        
+        function calculateLoan() {
+            const amount = parseFloat(document.getElementById("calcAmount").value);
+            const rate = parseFloat(document.getElementById("calcRate").value) / 12 / 100;
+            const term = parseInt(document.getElementById("calcTerm").value);
+            const income = parseFloat(document.getElementById("calcIncome").value);
+            const debts = parseFloat(document.getElementById("calcDebts").value);
+            
+            // EMI Formula: [P x r x (1+r)^N]/[(1+r)^N - 1]
+            const emi = (amount * rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1);
+            const totalPayment = emi * term;
+            const totalInterest = totalPayment - amount;
+            
+            // Render Values
+            const currencySymbol = "{{ currency_symbol }}";
+            document.getElementById("emiValue").innerHTML = `${currencySymbol}${emi.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById("interestValue").innerHTML = `${currencySymbol}${totalInterest.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById("paymentValue").innerHTML = `${currencySymbol}${totalPayment.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            
+            // Affordability Assessment (Target Debt DTI <= 43% under CFPB guidelines)
+            const totalMonthlyOutflow = debts + emi;
+            const dtiRatio = (totalMonthlyOutflow / income) * 100;
+            
+            const alertBox = document.getElementById("affordabilityAlert");
+            const alertTitle = document.getElementById("affordabilityTitle");
+            const alertDesc = document.getElementById("affordabilityDesc");
+            
+            if (dtiRatio <= 36) {
+                alertBox.className = "alert alert-success border-0 bg-success bg-opacity-5 text-success p-3 rounded";
+                alertTitle.innerHTML = '<i class="bi bi-shield-check-fill me-2"></i>Affordable (Excellent)';
+                alertDesc.innerHTML = `Your projected DTI ratio is <strong>${dtiRatio.toFixed(1)}%</strong>, well within traditional low-risk limits.`;
+            } else if (dtiRatio <= 43) {
+                alertBox.className = "alert alert-warning border-0 bg-warning bg-opacity-5 text-warning p-3 rounded";
+                alertTitle.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i>Conditionally Affordable';
+                alertDesc.innerHTML = `Your projected DTI is <strong>${dtiRatio.toFixed(1)}%</strong>. This lies in the cautious range and may require tighter underwriting.`;
+            } else {
+                alertBox.className = "alert alert-danger border-0 bg-danger bg-opacity-5 text-danger p-3 rounded";
+                alertTitle.innerHTML = '<i class="bi bi-x-circle-fill me-2"></i>Over Leverage Risk (Unaffordable)';
+                alertDesc.innerHTML = `Your projected DTI is <strong>${dtiRatio.toFixed(1)}%</strong>, which exceeds the CFPB standard threshold of 43%.`;
+            }
+            
+            // Update Pie Chart
+            updateEMIPieChart(amount, totalInterest);
+        }
+        
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+            calculateLoan();
+        });
+        
+        // Initial Calculation
+        calculateLoan();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Model Analytics{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4 animate-fade-in">
+    <div class="col-md-10">
+        <h2 class="text-white mb-1">Model Analytics & Pipeline Evaluation</h2>
+        <p class="text-muted mb-0">Compare the performance metrics of all classification algorithms trained on the credit risk dataset.</p>
+    </div>
+</div>
+
+<!-- Comparison Table -->
+<div class="row g-4 mb-5 animate-fade-in delay-1">
+    <div class="col-lg-12">
+        <div class="glass-card">
+            <h5 class="text-white mb-3"><i class="bi bi-table text-indigo-400 me-2"></i>Algorithm Comparison Matrix</h5>
+            <p class="text-muted small mb-4">All models were evaluated on an independent 20% test partition using stratified splits to handle class balance.</p>
+            
+            <div class="table-responsive table-responsive-custom">
+                <table class="table table-custom table-striped">
+                    <thead>
+                        <tr>
+                            <th>Model Name</th>
+                            <th>Accuracy</th>
+                            <th>Precision</th>
+                            <th>Recall</th>
+                            <th>F1 Score</th>
+                            <th class="text-end">ROC-AUC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for comp in comparisons %}
+                        <tr class="{% if loop.first %}table-active border-indigo-500 fw-semibold{% endif %}">
+                            <td class="text-white">
+                                {{ comp.Model }}
+                                {% if loop.first %}
+                                <span class="badge bg-indigo-500 text-white ms-2" style="font-size: 0.7rem;">BEST SEELCTED</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ "%.1f".format(comp.Accuracy * 100) }}%</td>
+                            <td>{{ "%.3f".format(comp.Precision) }}</td>
+                            <td>{{ "%.3f".format(comp.Recall) }}</td>
+                            <td class="text-indigo-300">{{ "%.3f".format(comp['F1 Score']) }}</td>
+                            <td class="text-end text-info">{{ "%.3f".format(comp['ROC-AUC']) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No model comparison data loaded. Please run train_model.py.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pipeline Evaluation Visualizations -->
+<div class="row g-4 animate-fade-in delay-2">
+    <div class="col-md-12">
+        <h4 class="text-white mb-3">Model Performance Visualizations</h4>
+    </div>
+    
+    <!-- ROC Curve -->
+    <div class="col-lg-4 col-md-6">
+        <div class="glass-card h-100">
+            <h5 class="text-white mb-3"><i class="bi bi-graph-up-arrow text-indigo-400 me-2"></i>ROC Curve</h5>
+            <p class="text-muted small mb-3">One-vs-Rest (OvR) ROC curve evaluating model discrimination capability per risk level.</p>
+            <div class="text-center p-2 rounded bg-dark bg-opacity-30">
+                <img src="{{ url_for('static', filename='images/roc_curve.png') }}" class="img-fluid rounded" alt="ROC Curve">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confusion Matrix -->
+    <div class="col-lg-4 col-md-6">
+        <div class="glass-card h-100">
+            <h5 class="text-white mb-3"><i class="bi bi-grid-3x3 text-indigo-400 me-2"></i>Confusion Matrix</h5>
+            <p class="text-muted small mb-3">Heatmap displaying actual vs. predicted classifications to highlight error structures.</p>
+            <div class="text-center p-2 rounded bg-dark bg-opacity-30">
+                <img src="{{ url_for('static', filename='images/confusion_matrix.png') }}" class="img-fluid rounded" alt="Confusion Matrix">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Feature Importances -->
+    <div class="col-lg-4 col-md-12">
+        <div class="glass-card h-100">
+            <h5 class="text-white mb-3"><i class="bi bi-bar-chart-fill text-indigo-400 me-2"></i>Global Feature Importances</h5>
+            <p class="text-muted small mb-3">Top 10 features sorted by their contribution to model split purity (Gini importance/weight).</p>
+            <div class="text-center p-2 rounded bg-dark bg-opacity-30">
+                <img src="{{ url_for('static', filename='images/feature_importance.png') }}" class="img-fluid rounded" alt="Feature Importance">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

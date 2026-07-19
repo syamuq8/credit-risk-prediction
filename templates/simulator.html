@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+
+{% block title %}Credit Score Simulator & What-If Analysis{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4 animate-fade-in">
+    <div class="col-md-9">
+        <h2>Credit Score Simulator & What-If Analysis</h2>
+        <p class="text-muted mb-0">Adjust applicant parameters in real-time to simulate decision overrides and compare risk mitigation scenarios.</p>
+    </div>
+</div>
+
+<div class="row g-4 animate-fade-in delay-1">
+    <!-- Simulator Parameters Control Panel -->
+    <div class="col-lg-5">
+        <div class="glass-card">
+            <h5 class="fw-bold mb-3"><i class="bi bi-sliders text-primary me-2"></i>Adjust Parameters</h5>
+            
+            <!-- Load existing customer profiles dropdown -->
+            <div class="mb-4">
+                <label for="loadCustomerSelect" class="form-label form-label-custom">Load Existing Customer Profile</label>
+                <select class="form-select form-select-custom" id="loadCustomerSelect" onchange="loadCustomerData()">
+                    <option value="" selected>-- Select Profile --</option>
+                    {% for cust in customers %}
+                    <option value="{{ cust.applicant_name }}">{{ cust.applicant_name }} (FICO: {{ cust.max_score }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <form id="simForm">
+                <!-- Age -->
+                <div class="mb-3">
+                    <label for="simAge" class="form-label form-label-custom">Age: <span id="valAge" class="text-primary fw-bold">35</span></label>
+                    <input type="range" class="form-range" id="simAge" min="15" max="90" value="35" oninput="updateVal('Age', this.value)">
+                </div>
+                
+                <!-- Annual Income -->
+                <div class="mb-3">
+                    <label for="simIncome" class="form-label form-label-custom">Annual Income ({{ currency_symbol }}): <span id="valIncome" class="text-primary fw-bold">50,000</span></label>
+                    <input type="range" class="form-range" id="simIncome" min="5000" max="250000" step="1000" value="50000" oninput="updateVal('Income', this.value)">
+                </div>
+                
+                <!-- Loan Amount -->
+                <div class="mb-3">
+                    <label for="simLoan" class="form-label form-label-custom">Loan Amount requested ({{ currency_symbol }}): <span id="valLoan" class="text-primary fw-bold">15,000</span></label>
+                    <input type="range" class="form-range" id="simLoan" min="1000" max="100000" step="500" value="15000" oninput="updateVal('Loan', this.value)">
+                </div>
+                
+                <!-- Credit Score -->
+                <div class="mb-3">
+                    <label for="simFico" class="form-label form-label-custom">Credit Score (FICO): <span id="valFico" class="text-primary fw-bold">700</span></label>
+                    <input type="range" class="form-range" id="simFico" min="250" max="850" value="700" oninput="updateVal('Fico', this.value)">
+                </div>
+                
+                <!-- DTI -->
+                <div class="mb-3">
+                    <label for="simDti" class="form-label form-label-custom">Debt-to-Income (DTI) Ratio: <span id="valDti" class="text-primary fw-bold">0.25</span></label>
+                    <input type="range" class="form-range" id="simDti" min="0.0" max="1.0" step="0.01" value="0.25" oninput="updateVal('Dti', this.value)">
+                </div>
+                
+                <!-- Existing Loans -->
+                <div class="mb-4">
+                    <label for="simExistingLoans" class="form-label form-label-custom">Existing Loans count: <span id="valExisting" class="text-primary fw-bold">1</span></label>
+                    <input type="range" class="form-range" id="simExistingLoans" min="0" max="10" value="1" oninput="updateVal('Existing', this.value)">
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="button" onclick="runSimulation()" class="btn btn-custom btn-primary-custom w-100 py-2.5">
+                        <i class="bi bi-play-fill me-1"></i> Run Simulation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- What-If Analysis & Comparison Panel -->
+    <div class="col-lg-7">
+        <div class="glass-card mb-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-arrow-left-right text-primary me-2"></i>Scenario Comparison</h5>
+            
+            <!-- Quick Modifiers (Pre-sets) -->
+            <div class="d-flex flex-wrap gap-2 mb-4 p-3 rounded bg-secondary bg-opacity-5 border">
+                <span class="small text-muted w-100 mb-1 fw-bold">Quick Scenarios modifiers:</span>
+                <button onclick="applyModifier('income', 1.25)" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-circle"></i> +25% Income</button>
+                <button onclick="applyModifier('fico', 50)" class="btn btn-sm btn-outline-primary"><i class="bi bi-graph-up"></i> +50 FICO Points</button>
+                <button onclick="applyModifier('loan', 0.70)" class="btn btn-sm btn-outline-primary"><i class="bi bi-dash-circle"></i> -30% Loan Request</button>
+                <button onclick="applyModifier('loans', -1)" class="btn btn-sm btn-outline-primary"><i class="bi bi-check-circle"></i> Pay Off 1 Loan</button>
+            </div>
+            
+            <!-- Comparison Table -->
+            <div class="table-responsive table-responsive-custom">
+                <table class="table table-custom text-center align-middle m-0 small">
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Baseline Profile</th>
+                            <th class="table-active">Simulated Profile</th>
+                            <th>Variance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonTableBody">
+                        <tr><td>FICO Credit Score</td><td id="baseFico">700</td><td class="table-active fw-bold" id="simFicoCell">700</td><td id="varFico" class="fw-bold">-</td></tr>
+                        <tr><td>Annual Income</td><td id="baseIncome">{{ currency_symbol }}50,000</td><td class="table-active fw-bold" id="simIncomeCell">{{ currency_symbol }}50,000</td><td id="varIncome" class="fw-bold">-</td></tr>
+                        <tr><td>Loan Amount</td><td id="baseLoan">{{ currency_symbol }}15,000</td><td class="table-active fw-bold" id="simLoanCell">{{ currency_symbol }}15,000</td><td id="varLoan" class="fw-bold">-</td></tr>
+                        <tr><td>DTI Ratio</td><td id="baseDti">0.25</td><td class="table-active fw-bold" id="simDtiCell">0.25</td><td id="varDti" class="fw-bold">-</td></tr>
+                        <tr><td>Existing Loans</td><td id="baseExisting">1</td><td class="table-active fw-bold" id="simExistingCell">1</td><td id="varExisting" class="fw-bold">-</td></tr>
+                        
+                        <!-- Decisions row -->
+                        <tr class="table-active fw-bold">
+                            <td>RISK CATEGORY</td>
+                            <td id="baseRisk"><span class="badge bg-secondary bg-opacity-10 text-secondary">-</span></td>
+                            <td id="simRisk"><span class="badge bg-secondary bg-opacity-10 text-secondary">-</span></td>
+                            <td>-</td>
+                        </tr>
+                        <tr class="table-active fw-bold">
+                            <td>DEFAULT PROB.</td>
+                            <td id="baseProb" class="text-danger">-</td>
+                            <td id="simProb" class="text-danger">-</td>
+                            <td id="varProb" class="fw-bold">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Live XAI Attributions -->
+        <div class="glass-card">
+            <h5 class="fw-bold mb-3"><i class="bi bi-robot text-primary me-2"></i>Simulated Explainable AI Drivers</h5>
+            <div style="position: relative; height: 180px;">
+                <canvas id="xaiBarChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Keep track of baseline values
+    let baseline = {
+        Age: 35, Income: 50000, Loan: 15000, Fico: 700, Dti: 0.25, Existing: 1, Risk: '-', Prob: 0
+    };
+
+    function updateVal(key, val) {
+        const textSpan = document.getElementById(`val${key}`);
+        if (textSpan) {
+            textSpan.innerText = (key === 'Income' || key === 'Loan') ? parseInt(val).toLocaleString() : val;
+        }
+        
+        // Recalculate variances instantly on slide
+        calculateVariances();
+    }
+    
+    function calculateVariances() {
+        const simFico = parseInt(document.getElementById("simFico").value);
+        const simIncome = parseInt(document.getElementById("simIncome").value);
+        const simLoan = parseInt(document.getElementById("simLoan").value);
+        const simDti = parseFloat(document.getElementById("simDti").value);
+        const simExisting = parseInt(document.getElementById("simExistingLoans").value);
+        
+        // Update Simulated values in cells
+        const currencySymbol = "{{ currency_symbol }}";
+        document.getElementById("simFicoCell").innerText = simFico;
+        document.getElementById("simIncomeCell").innerText = `${currencySymbol}${simIncome.toLocaleString()}`;
+        document.getElementById("simLoanCell").innerText = `${currencySymbol}${simLoan.toLocaleString()}`;
+        document.getElementById("simDtiCell").innerText = simDti;
+        document.getElementById("simExistingCell").innerText = simExisting;
+        
+        // Calculate Variances
+        setVarianceCell("varFico", simFico - baseline.Fico, "");
+        setVarianceCell("varIncome", simIncome - baseline.Income, currencySymbol);
+        setVarianceCell("varLoan", simLoan - baseline.Loan, currencySymbol);
+        setVarianceCell("varDti", (simDti - baseline.Dti).toFixed(2), "");
+        setVarianceCell("varExisting", simExisting - baseline.Existing, "");
+    }
+    
+    function setVarianceCell(id, diff, prefix) {
+        const cell = document.getElementById(id);
+        if (!cell) return;
+        
+        if (diff > 0) {
+            cell.className = "text-success fw-bold";
+            cell.innerText = `+${prefix}${Math.abs(diff).toLocaleString()}`;
+        } else if (diff < 0) {
+            cell.className = "text-danger fw-bold";
+            cell.innerText = `-${prefix}${Math.abs(diff).toLocaleString()}`;
+        } else {
+            cell.className = "text-muted";
+            cell.innerText = "-";
+        }
+    }
+    
+    function loadCustomerData() {
+        const select = document.getElementById("loadCustomerSelect");
+        const name = select.value;
+        if (!name) return;
+        
+        showToast(`Loading profile: ${name}...`, "info");
+        
+        // Fetch customer query timeline from database history via API
+        fetch(`/api/history?search=${name}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.data.length > 0) {
+                const doc = data.data[0]; // Load latest query
+                
+                // Update baseline variables
+                baseline = {
+                    Age: doc.age,
+                    Income: doc.annual_income,
+                    Loan: doc.loan_amount,
+                    Fico: doc.credit_score,
+                    Dti: doc.dti,
+                    Existing: doc.existing_loans,
+                    Risk: doc.risk_level,
+                    Prob: doc.default_probability
+                };
+                
+                // Update baseline UI cells
+                const currencySymbol = "{{ currency_symbol }}";
+                document.getElementById("baseFico").innerText = baseline.Fico;
+                document.getElementById("baseIncome").innerText = `${currencySymbol}${baseline.Income.toLocaleString()}`;
+                document.getElementById("baseLoan").innerText = `${currencySymbol}${baseline.Loan.toLocaleString()}`;
+                document.getElementById("baseDti").innerText = baseline.Dti;
+                document.getElementById("baseExisting").innerText = baseline.Existing;
+                document.getElementById("baseRisk").innerHTML = `<span class="badge-custom badge-risk-${doc.badge}">${baseline.Risk}</span>`;
+                document.getElementById("baseProb").innerText = `${baseline.Prob}%`;
+                
+                // Set Sliders to baseline
+                document.getElementById("simAge").value = baseline.Age;
+                document.getElementById("simIncome").value = baseline.Income;
+                document.getElementById("simLoan").value = baseline.Loan;
+                document.getElementById("simFico").value = baseline.Fico;
+                document.getElementById("simDti").value = baseline.Dti;
+                document.getElementById("simExistingLoans").value = baseline.Existing;
+                
+                // Update slider text displays
+                updateVal("Age", baseline.Age);
+                updateVal("Income", baseline.Income);
+                updateVal("Loan", baseline.Loan);
+                updateVal("Fico", baseline.Fico);
+                updateVal("Dti", baseline.Dti);
+                updateVal("Existing", baseline.Existing);
+                
+                // Run simulation initially
+                runSimulation();
+            }
+        })
+        .catch(err => {
+            showToast("Failed to retrieve profile data", "danger");
+            console.error(err);
+        });
+    }
+    
+    function applyModifier(type, val) {
+        if (type === 'income') {
+            const current = parseInt(document.getElementById("simIncome").value);
+            document.getElementById("simIncome").value = current * val;
+            updateVal("Income", current * val);
+        } else if (type === 'fico') {
+            const current = parseInt(document.getElementById("simFico").value);
+            document.getElementById("simFico").value = current + val;
+            updateVal("Fico", current + val);
+        } else if (type === 'loan') {
+            const current = parseInt(document.getElementById("simLoan").value);
+            document.getElementById("simLoan").value = current * val;
+            updateVal("Loan", current * val);
+        } else if (type === 'loans') {
+            const current = parseInt(document.getElementById("simExistingLoans").value);
+            document.getElementById("simExistingLoans").value = Math.max(0, current + val);
+            updateVal("Existing", Math.max(0, current + val));
+        }
+        
+        // Auto run
+        runSimulation();
+    }
+    
+    let xaiChartInstance = null;
+    
+    function runSimulation() {
+        // Collect slider inputs
+        const payload = {
+            age: parseInt(document.getElementById("simAge").value),
+            annual_income: parseFloat(document.getElementById("simIncome").value),
+            loan_amount: parseFloat(document.getElementById("simLoan").value),
+            credit_score: parseInt(document.getElementById("simFico").value),
+            dti: parseFloat(document.getElementById("simDti").value),
+            existing_loans: parseInt(document.getElementById("simExistingLoans").value),
+            
+            // Standard static placeholders for other fields
+            gender: 'Male', employment_status: 'Employed', years_employment: 3.5,
+            education: 'Bachelor', marital_status: 'Single', loan_purpose: 'Personal',
+            interest_rate: 8.5, loan_term: 36, savings_balance: 5000, monthly_expenses: 1500,
+            property_ownership: 'Rent', dependents: 0
+        };
+        
+        fetch('/api/simulate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const res = data.result;
+                
+                // Update simulated decision cells
+                const riskBadgeClass = res.badge === 'success' ? 'badge-risk-low' : (res.badge === 'warning' ? 'badge-risk-medium' : 'badge-risk-high');
+                document.getElementById("simRisk").innerHTML = `<span class="badge-custom ${riskBadgeClass}">${res.risk_level}</span>`;
+                document.getElementById("simProb").innerText = `${res.default_probability}%`;
+                
+                // Variance of default probability
+                const diffProb = res.default_probability - baseline.Prob;
+                const varProbCell = document.getElementById("varProb");
+                if (diffProb > 0) {
+                    varProbCell.className = "text-danger fw-bold";
+                    varProbCell.innerText = `+${diffProb.toFixed(1)}%`;
+                } else if (diffProb < 0) {
+                    varProbCell.className = "text-success fw-bold";
+                    varProbCell.innerText = `${diffProb.toFixed(1)}%`;
+                } else {
+                    varProbCell.className = "text-muted";
+                    varProbCell.innerText = "-";
+                }
+                
+                // Redraw XAI attributions
+                drawXAIChart(res.contributions);
+                showToast("Risk recalculation complete", "success");
+            } else {
+                showToast(data.message || "Recalculation error", "danger");
+            }
+        })
+        .catch(err => {
+            showToast("Recalculation connection failure", "danger");
+            console.error(err);
+        });
+    }
+    
+    function drawXAIChart(contributions) {
+        const ctx = document.getElementById("xaiBarChart");
+        if (!ctx) return;
+        
+        if (xaiChartInstance) {
+            xaiChartInstance.destroy();
+        }
+        
+        const labels = contributions.map(c => c.feature);
+        const values = contributions.map(c => c.contribution);
+        const colors = values.map(val => val >= 0 ? '#39FF14' : 'rgba(57, 255, 20, 0.3)');
+        
+        xaiChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: '#39FF14',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(57, 255, 20, 0.15)' }, ticks: { color: '#000000' } },
+                    y: { grid: { display: false }, ticks: { color: '#000000', font: { weight: '600' } } }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

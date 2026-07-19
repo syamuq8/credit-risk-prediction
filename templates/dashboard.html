@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Executive Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-md-flex align-items-center justify-content-between mb-4 animate-fade-in">
+    <div>
+        <h2 class="mb-1">FinGuard Executive Dashboard</h2>
+        <p class="text-muted mb-0">Overview of credit risk, loan indicators, and model inferences. Active Engine: <strong class="text-primary">{{ active_model }}</strong></p>
+    </div>
+    <div class="mt-3 mt-md-0 d-flex gap-2">
+        <a href="{{ url_for('predict') }}" class="btn btn-custom btn-primary-custom">
+            <i class="bi bi-shield-shaded me-1"></i> New Assessment
+        </a>
+    </div>
+</div>
+
+<!-- KPI Cards Row 1 -->
+<div class="row g-3 mb-3 animate-fade-in delay-1">
+    <!-- Total Predictions -->
+    <div class="col-6 col-lg-3">
+        <div class="glass-card metric-card-kpi d-flex align-items-center justify-content-between p-3">
+            <div>
+                <div class="kpi-title">Total Assessments</div>
+                <div class="kpi-value text-primary">{{ total_predictions }}</div>
+            </div>
+            <div class="kpi-icon">
+                <i class="bi bi-people-fill"></i>
+            </div>
+        </div>
+    </div>
+    <!-- Approved (Low Risk) -->
+    <div class="col-6 col-lg-3">
+        <div class="glass-card metric-card-kpi metric-card-success d-flex align-items-center justify-content-between p-3">
+            <div>
+                <div class="kpi-title">Approved (Low)</div>
+                <div class="kpi-value text-success">{{ approved_loans }}</div>
+            </div>
+            <div class="kpi-icon kpi-icon-success">
+                <i class="bi bi-person-check-fill"></i>
+            </div>
+        </div>
+    </div>
+    <!-- Rejected (High Risk) -->
+    <div class="col-6 col-lg-3">
+        <div class="glass-card metric-card-kpi metric-card-danger d-flex align-items-center justify-content-between p-3">
+            <div>
+                <div class="kpi-title">Rejected (High)</div>
+                <div class="kpi-value text-danger">{{ rejected_loans }}</div>
+            </div>
+            <div class="kpi-icon kpi-icon-danger">
+                <i class="bi bi-person-x-fill"></i>
+            </div>
+        </div>
+    </div>
+    <!-- Average Credit Score -->
+    <div class="col-6 col-lg-3">
+        <div class="glass-card metric-card-kpi d-flex align-items-center justify-content-between p-3">
+            <div>
+                <div class="kpi-title">Avg Credit Score</div>
+                <div class="kpi-value text-info">{{ avg_credit_score }}</div>
+            </div>
+            <div class="kpi-icon">
+                <i class="bi bi-speedometer2"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- KPI Cards Row 2 -->
+<div class="row g-3 mb-4 animate-fade-in delay-2">
+    <!-- Default Rate -->
+    <div class="col-6 col-md-3">
+        <div class="glass-card metric-card-kpi metric-card-warning d-flex align-items-center justify-content-between p-3">
+            <div>
+                <div class="kpi-title">Default Rate</div>
+                <div class="kpi-value text-warning">{{ default_rate }}%</div>
+            </div>
+            <div class="kpi-icon kpi-icon-warning">
+                <i class="bi bi-graph-down-arrow"></i>
+            </div>
+        </div>
+    </div>
+    <!-- Average Income -->
+    <div class="col-6 col-md-3">
+        <div class="glass-card metric-card-kpi d-flex align-items-center justify-content-between p-3">
+            <div>
+                <div class="kpi-title">Avg Income</div>
+                <div class="kpi-value">{{ currency_symbol }}{{ "{:,.0f}".format(avg_income) }}</div>
+            </div>
+            <div class="kpi-icon">
+                <i class="bi bi-wallet2"></i>
+            </div>
+        </div>
+    </div>
+    <!-- Average Loan -->
+    <div class="col-6 col-md-3">
+        <div class="glass-card metric-card-kpi d-flex align-items-center justify-content-between p-3">
+            <div>
+                <div class="kpi-title">Avg Loan Requested</div>
+                <div class="kpi-value">{{ currency_symbol }}{{ "{:,.0f}".format(avg_loan_amount) }}</div>
+            </div>
+            <div class="kpi-icon">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+        </div>
+    </div>
+    <!-- Medium Risk Count -->
+    <div class="col-6 col-md-3">
+        <div class="glass-card metric-card-kpi metric-card-warning d-flex align-items-center justify-content-between p-3">
+            <div>
+                <div class="kpi-title">Medium Risk</div>
+                <div class="kpi-value text-warning">{{ medium_count }}</div>
+            </div>
+            <div class="kpi-icon kpi-icon-warning">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Grid -->
+<div class="row g-4 mb-4 animate-fade-in delay-3">
+    <!-- Risk Doughnut -->
+    <div class="col-lg-4 col-md-6">
+        <div class="glass-card h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Risk Category Distribution</h6>
+            <div style="position: relative; height: 260px;">
+                <canvas id="riskDoughnutChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Trend Line -->
+    <div class="col-lg-8 col-md-6">
+        <div class="glass-card h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-activity text-primary me-2"></i>Assessment Activity Timeline</h6>
+            <div style="position: relative; height: 260px;">
+                <canvas id="predictionsLineChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Scatter Distribution -->
+    <div class="col-lg-12">
+        <div class="glass-card">
+            <h6 class="fw-bold mb-3"><i class="bi bi-graph-up text-primary me-2"></i>Annual Income vs. Loan Request (By Risk Level)</h6>
+            <div style="position: relative; height: 350px;">
+                <canvas id="incomeLoanScatterChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Purpose Pie & Employment Doughnut -->
+    <div class="col-md-6 col-lg-4">
+        <div class="glass-card h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart text-primary me-2"></i>Loan Purpose Distribution</h6>
+            <div style="position: relative; height: 250px;">
+                <canvas id="purposePieChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <div class="glass-card h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-briefcase-fill text-primary me-2"></i>Employment Breakdown</h6>
+            <div style="position: relative; height: 250px;">
+                <canvas id="empStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Score Ranges polar area/bar -->
+    <div class="col-md-12 col-lg-4">
+        <div class="glass-card h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Credit Score Distribution</h6>
+            <div style="position: relative; height: 250px;">
+                <canvas id="creditScoreDistChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Predictions & Monitor widgets -->
+<div class="row g-4 animate-fade-in delay-4">
+    <!-- Recent Table -->
+    <div class="col-lg-8">
+        <div class="glass-card h-100 px-0 py-1">
+            <div class="px-4 py-3 d-flex align-items-center justify-content-between">
+                <h6 class="fw-bold m-0"><i class="bi bi-table text-primary me-2"></i>Recent Loan Assessments</h6>
+                <a href="{{ url_for('history') }}" class="small text-decoration-none">View All Log</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-custom table-hover m-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Applicant</th>
+                            <th>FICO</th>
+                            <th>Loan Amount</th>
+                            <th class="text-end">Risk Category</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in recent_predictions %}
+                        <tr>
+                            <td class="text-muted small">{{ row.prediction_date[5:16] }}</td>
+                            <td class="fw-semibold">{{ row.applicant_name }}</td>
+                            <td>{{ row.credit_score }}</td>
+                            <td>{{ currency_symbol }}{{ "{:,.0f}".format(row.loan_amount) }}</td>
+                            <td class="text-end">
+                                <span class="badge-custom badge-risk-{{ row.badge }}">{{ row.risk_level }}</span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">No assessment records found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alerts & Monitor -->
+    <div class="col-lg-4">
+        <!-- High-Risk list -->
+        <div class="glass-card mb-4" style="background: rgba(239, 68, 68, 0.03); border-color: rgba(239, 68, 68, 0.15);">
+            <h6 class="fw-bold text-danger mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>Top High-Risk Alerts</h6>
+            <div class="list-group list-group-flush" style="background:transparent;">
+                {% for row in top_high_risk %}
+                <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center" style="background:transparent; border-bottom: 1px solid rgba(239, 68, 68, 0.08);">
+                    <div>
+                        <strong class="text-main" style="font-size:0.9rem;">{{ row.applicant_name }}</strong>
+                        <small class="text-muted d-block" style="font-size:0.75rem;">FICO: {{ row.credit_score }} | DTI: {{ "%.2f".format(row.dti) }}</small>
+                    </div>
+                    <span class="text-danger fw-bold fs-7">{{ row.default_probability }}% Prob.</span>
+                </div>
+                {% else %}
+                <div class="text-muted small py-2">No active high-risk alerts found.</div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Health widget -->
+        <div class="glass-card">
+            <h6 class="fw-bold mb-3"><i class="bi bi-heart-pulse-fill text-primary me-2"></i>System Health Status</h6>
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="health-dot"></span>
+                <span class="small fw-semibold text-success">ALL ENGINE ONLINE</span>
+            </div>
+            <div class="row g-2 small text-muted">
+                <div class="col-6">Predict Engine:</div><div class="col-6 text-end text-main fw-semibold">Running</div>
+                <div class="col-6">Database File:</div><div class="col-6 text-end text-main fw-semibold">Connected</div>
+                <div class="col-6">Active Model:</div><div class="col-6 text-end text-main fw-semibold">{{ active_model }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const dashboardData = {
+            riskDist: {{ risk_dist|tojson }},
+            monthlyStats: {{ monthly_stats|safe }},
+            purposeStats: {{ purpose_stats|safe }},
+            employmentStats: {{ employment_stats|safe }},
+            scatterData: {{ scatter_data|safe }},
+            scoreRanges: {{ score_ranges|safe }}
+        };
+        initDashboardVisualizations(dashboardData);
+    });
+</script>
+{% endblock %}

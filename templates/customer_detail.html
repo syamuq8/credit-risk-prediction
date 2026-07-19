@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Details - {{ name }}{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4 animate-fade-in">
+    <div class="col-md-8">
+        <h2>Customer Risk Profile Timeline</h2>
+        <p class="text-muted mb-0">Historical credit scores and risk tendencies for applicant: <strong>{{ name }}</strong></p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <a href="{{ url_for('customers') }}" class="btn btn-custom btn-secondary-custom">
+            <i class="bi bi-arrow-left me-1"></i> Back to Profiles
+        </a>
+    </div>
+</div>
+
+<div class="row g-4 animate-fade-in delay-1">
+    <!-- Customer Demographics Details Card -->
+    <div class="col-lg-4">
+        <div class="glass-card h-100 text-center p-4">
+            <!-- Large Avatar -->
+            <div class="mx-auto mb-3 d-flex align-items-center justify-content-center bg-secondary bg-opacity-10 text-primary fw-bold" style="width:90px; height:90px; border-radius:50%; font-size:2.2rem; border: 3px solid var(--primary-glow);">
+                {{ name[0] }}{% if ' ' in name %}{{ name.split(' ')[1][0] }}{% endif %}
+            </div>
+            
+            <h4 class="fw-bold text-main mb-1">{{ name }}</h4>
+            <span class="badge-custom badge-risk-{{ latest.badge }} mb-4">Latest: {{ latest.risk_level }}</span>
+            
+            <div class="row g-3 text-start small border-top border-secondary border-opacity-5 pt-4">
+                <div class="col-6 text-muted">Age / Gender:</div><div class="col-6 text-main fw-semibold text-end">{{ latest.age }} / {{ latest.gender }}</div>
+                <div class="col-6 text-muted">Education:</div><div class="col-6 text-main fw-semibold text-end">{{ latest.education }}</div>
+                <div class="col-6 text-muted">Marital Status:</div><div class="col-6 text-main fw-semibold text-end">{{ latest.marital_status }}</div>
+                <div class="col-6 text-muted">Dependents:</div><div class="col-6 text-main fw-semibold text-end">{{ latest.dependents }}</div>
+                <div class="col-6 text-muted">Employment:</div><div class="col-6 text-main fw-semibold text-end">{{ latest.employment_status }} ({{ latest.years_employment }} yrs)</div>
+                <div class="col-6 text-muted">Annual Income:</div><div class="col-6 text-main fw-semibold text-end">{{ currency_symbol }}{{ "{:,.0f}".format(latest.annual_income) }}</div>
+                <div class="col-6 text-muted">Savings account:</div><div class="col-6 text-main fw-semibold text-end">{{ currency_symbol }}{{ "{:,.0f}".format(latest.savings_balance) }}</div>
+                <div class="col-6 text-muted">Monthly Expenses:</div><div class="col-6 text-main fw-semibold text-end">{{ currency_symbol }}{{ "{:,.0f}".format(latest.monthly_expenses) }}</div>
+                <div class="col-6 text-muted">Property Ownership:</div><div class="col-6 text-main fw-semibold text-end">{{ latest.property_ownership }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Historical Trend charts -->
+    <div class="col-lg-8">
+        <div class="glass-card mb-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-graph-up text-primary me-2"></i>Historical Credit Score Timeline (FICO)</h6>
+            <div style="position: relative; height: 180px;">
+                <canvas id="scoreTimelineChart"></canvas>
+            </div>
+        </div>
+        <div class="glass-card">
+            <h6 class="fw-bold mb-3"><i class="bi bi-activity text-danger me-2"></i>Historical Default Risk Trend (%)</h6>
+            <div style="position: relative; height: 180px;">
+                <canvas id="riskTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Detailed History List -->
+    <div class="col-12">
+        <div class="glass-card px-0 py-1">
+            <div class="px-4 py-3 border-bottom border-secondary border-opacity-5">
+                <h6 class="fw-bold m-0"><i class="bi bi-clock-history text-primary me-2"></i>Applicant Assessment Logs</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-custom table-hover m-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>FICO</th>
+                            <th>Requested Loan</th>
+                            <th>DTI Ratio</th>
+                            <th>Interest Rate</th>
+                            <th>Risk Level</th>
+                            <th>Default Prob.</th>
+                            <th>Model Used</th>
+                            <th class="text-end">Report</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in history %}
+                        <tr>
+                            <td class="text-muted small">{{ row.prediction_date }}</td>
+                            <td class="fw-semibold">{{ row.credit_score }}</td>
+                            <td>{{ currency_symbol }}{{ "{:,.0f}".format(row.loan_amount) }} <small class="text-muted">({{ row.loan_purpose }})</small></td>
+                            <td>{{ "%.2f".format(row.dti) }}</td>
+                            <td>{{ row.interest_rate }}% ({{ row.loan_term }} mos)</td>
+                            <td>
+                                <span class="badge-custom badge-risk-{{ row.badge }}">{{ row.risk_level }}</span>
+                            </td>
+                            <td class="fw-bold text-{{ row.badge }}">{{ row.default_probability }}%</td>
+                            <td><span class="badge bg-secondary bg-opacity-10 text-secondary">{{ row.model_used.upper().replace('_', ' ') }}</span></td>
+                            <td class="text-end">
+                                <a href="{{ url_for('view_report', id=row.id) }}" class="btn btn-sm btn-outline-secondary" title="Full Report"><i class="bi bi-file-earmark-pdf-fill text-danger"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const dates = {{ timeline_dates|safe }};
+        const scores = {{ timeline_scores|safe }};
+        const risks = {{ timeline_risks|safe }};
+        
+        initCustomerTimelineCharts(dates, scores, risks);
+    });
+</script>
+{% endblock %}

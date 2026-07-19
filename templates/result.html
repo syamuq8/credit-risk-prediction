@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction Report - {{ applicant_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 animate-fade-in">
+    <div>
+        <h2>Credit Assessment Report</h2>
+        <p class="text-muted mb-0">Applicant: <strong>{{ applicant_name }}</strong> | Generated: {{ prediction_time }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-custom btn-secondary-custom">
+            <i class="bi bi-printer-fill me-1"></i> Print / Save PDF
+        </button>
+    </div>
+</div>
+
+<div class="row g-4 justify-content-center animate-fade-in delay-1">
+    <!-- Speedometer and recommendation summary -->
+    <div class="col-lg-5 col-md-6">
+        <div class="glass-card h-100 text-center d-flex flex-column justify-content-between p-4">
+            <div>
+                <h5 class="fw-bold mb-4 text-start"><i class="bi bi-speedometer2 text-primary me-2"></i>Default Risk Meter</h5>
+                <div class="gauge-wrapper">
+                    <div class="gauge-meter-base">
+                        <div class="gauge-meter-fill" id="riskGaugeFill"></div>
+                        <div class="gauge-meter-cover"></div>
+                        <div class="gauge-needle" id="riskGaugeNeedle"></div>
+                        <div class="gauge-value" id="riskGaugeVal">0%</div>
+                    </div>
+                </div>
+                <div class="mt-3 text-muted small">Repayment Likelihood: <strong class="text-success">{{ result.repayment_probability }}%</strong></div>
+            </div>
+            
+            <div class="mt-4 pt-3 border-top border-secondary border-opacity-10">
+                <div class="d-flex justify-content-center align-items-center gap-2 mb-2">
+                    <span class="badge-custom badge-risk-{{ result.badge }} fs-6">
+                        {% if result.badge == 'success' %}🟢 Low Risk
+                        {% elif result.badge == 'warning' %}🟡 Medium Risk
+                        {% else %}🔴 High Risk{% endif %}
+                    </span>
+                </div>
+                <h4 class="fw-bold mb-2">
+                    Decision: 
+                    {% if result.recommendation == 'Approve' %}<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Approved</span>
+                    {% elif result.recommendation == 'Manual Review' %}<span class="text-warning"><i class="bi bi-exclamation-circle-fill me-1"></i>Manual Review</span>
+                    {% else %}<span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Rejected</span>{% endif %}
+                </h4>
+                <p class="small text-muted mb-0">Model agreement index: <strong>{{ result.confidence_score }}%</strong> | Inference: <strong>{{ result.duration_ms }} ms</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Profile Summary -->
+    <div class="col-lg-5 col-md-6">
+        <div class="glass-card h-100 d-flex flex-column justify-content-between p-4">
+            <div>
+                <h5 class="fw-bold mb-3"><i class="bi bi-person-card-text text-primary me-2"></i>Applicant Summary</h5>
+                <div class="row g-2 small">
+                    <div class="col-6 text-muted">Applicant Name:</div><div class="col-6 text-main fw-semibold">{{ applicant_name }}</div>
+                    <div class="col-6 text-muted">Age / Gender:</div><div class="col-6 text-main fw-semibold">{{ input_data.Age }} / {{ input_data.Gender }}</div>
+                    <div class="col-6 text-muted">Annual Income:</div><div class="col-6 text-main fw-semibold">{{ currency_symbol }}{{ "{:,.0f}".format(input_data['Annual Income']) }}</div>
+                    <div class="col-6 text-muted">Credit Score (FICO):</div><div class="col-6 text-main fw-semibold">{{ input_data['Credit Score'] }}</div>
+                    <div class="col-6 text-muted">Requested Loan:</div><div class="col-6 text-main fw-semibold">{{ currency_symbol }}{{ "{:,.0f}".format(input_data['Loan Amount']) }} ({{ input_data['Loan Purpose'] }})</div>
+                    <div class="col-6 text-muted">Interest / Term:</div><div class="col-6 text-main fw-semibold">{{ input_data['Loan Term'] }} mos @ {{ input_data['Interest Rate'] }}%</div>
+                    <div class="col-6 text-muted">Debt-to-Income (DTI):</div><div class="col-6 text-main fw-semibold">{{ input_data['Debt-to-Income Ratio'] }}</div>
+                    <div class="col-6 text-muted">Savings Account Balance:</div><div class="col-6 text-main fw-semibold">{{ currency_symbol }}{{ "{:,.0f}".format(input_data['Savings Balance']) }}</div>
+                </div>
+            </div>
+            <div class="pt-3 mt-3 border-top border-secondary border-opacity-10 text-center">
+                <a href="{{ url_for('customer_profile', name=applicant_name) }}" class="btn btn-sm btn-custom btn-secondary-custom w-100">
+                    <i class="bi bi-person-lines-fill me-1"></i> View Historical Customer Profile
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Explainable AI (XAI) Panel -->
+    <div class="col-lg-10">
+        <div class="glass-card">
+            <h5 class="fw-bold mb-3"><i class="bi bi-robot text-primary me-2"></i>Explainable AI (XAI) Attribution</h5>
+            
+            <!-- Natural Language Sentence -->
+            <div class="alert alert-secondary border-0 bg-secondary bg-opacity-10 text-main mb-4 p-3 fs-6">
+                <i class="bi bi-quote text-primary me-2 fs-4 align-middle"></i>
+                <em>{{ result.explanations[0] }}</em>
+            </div>
+
+            <!-- Attributions waterfall layout -->
+            <div class="row g-4">
+                <div class="col-md-6 border-end border-secondary border-opacity-10">
+                    <h6 class="fw-bold text-success mb-3"><i class="bi bi-plus-circle-fill me-2"></i>Positive Drivers (Lowering Risk)</h6>
+                    <div class="shap-vector-container">
+                        {% for c in result.negative_drivers %}
+                            <div class="shap-vector-row">
+                                <div class="shap-vector-label">{{ c.feature }}</div>
+                                <div class="shap-vector-bar-wrapper">
+                                    <div class="shap-vector-bar shap-vector-neg" style="width: {{ (c.contribution|abs * 1200)|round(0) if (c.contribution|abs * 1200) < 50 else 50 }}%; left: auto; right: 50%;"></div>
+                                </div>
+                                <div class="shap-vector-value text-success">{{ "%.2f".format(c.contribution * 100) }}%</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-danger mb-3"><i class="bi bi-dash-circle-fill me-2"></i>Negative Drivers (Increasing Risk)</h6>
+                    <div class="shap-vector-container">
+                        {% for c in result.positive_drivers %}
+                            <div class="shap-vector-row">
+                                <div class="shap-vector-label">{{ c.feature }}</div>
+                                <div class="shap-vector-bar-wrapper">
+                                    <div class="shap-vector-bar shap-vector-pos" style="width: {{ (c.contribution * 1200)|round(0) if (c.contribution * 1200) < 50 else 50 }}%; left: 50%;"></div>
+                                </div>
+                                <div class="shap-vector-value text-danger">+{{ "%.2f".format(c.contribution * 100) }}%</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Suggestions Card -->
+    <div class="col-lg-10">
+        <div class="glass-card">
+            <h5 class="fw-bold mb-3"><i class="bi bi-lightbulb-fill text-warning me-2"></i>Loan Eligibility Optimization Suggestions</h5>
+            <p class="text-muted small">Recommendations designed to optimize credit parameters for re-application.</p>
+            <div class="row g-3">
+                {% for sug in result.suggestions %}
+                <div class="col-md-6">
+                    <div class="p-3 rounded bg-secondary bg-opacity-5 border border-secondary border-opacity-10 h-100 d-flex align-items-start gap-2">
+                        <i class="bi bi-arrow-right-circle-fill text-warning mt-1 fs-5"></i>
+                        <span class="text-muted small" style="line-height:1.4;">{{ sug }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Buttons -->
+    <div class="col-lg-10 text-center mt-3">
+        <a href="{{ url_for('predict') }}" class="btn btn-custom btn-secondary-custom me-2">
+            <i class="bi bi-arrow-repeat me-1"></i> Assess Another Applicant
+        </a>
+        <a href="{{ url_for('history') }}" class="btn btn-custom btn-primary-custom">
+            <i class="bi bi-list-columns-reverse me-1"></i> View History Log
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const prob = {{ result.default_probability }};
+        
+        // Speedometer Needle and Color Fill Rotation
+        const needle = document.getElementById("riskGaugeNeedle");
+        const fill = document.getElementById("riskGaugeFill");
+        const val = document.getElementById("riskGaugeVal");
+        
+        if (needle && fill && val) {
+            // Needle rotates from -90deg (0%) to 90deg (100%)
+            const needleRotation = -90 + (prob / 100) * 180;
+            // Fill rotates from -180deg to 0deg (or transforms)
+            const fillRotation = -180 + (prob / 100) * 180;
+            
+            setTimeout(() => {
+                needle.style.transform = `rotate(${needleRotation}deg)`;
+                fill.style.transform = `rotate(${fillRotation}deg)`;
+                
+                // Animate value number
+                let startVal = 0;
+                const endVal = prob;
+                const duration = 1200; // ms
+                const stepTime = Math.abs(Math.floor(duration / endVal));
+                
+                if (endVal > 0) {
+                    const timer = setInterval(() => {
+                        startVal += 0.5;
+                        if (startVal >= endVal) {
+                            val.innerHTML = `${endVal}%`;
+                            clearInterval(timer);
+                        } else {
+                            val.innerHTML = `${startVal.toFixed(1)}%`;
+                        }
+                    }, stepTime * 2);
+                } else {
+                    val.innerHTML = "0%";
+                }
+            }, 100);
+        }
+    });
+</script>
+{% endblock %}

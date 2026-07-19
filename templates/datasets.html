@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset Manager{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4 animate-fade-in">
+    <div class="col-md-9">
+        <h2>Datasets & Pipeline Manager</h2>
+        <p class="text-muted mb-0">Upload new credit risk records, examine missing value reports, inspect feature correlation maps, and retrain ML pipelines.</p>
+    </div>
+</div>
+
+<div class="row g-4 animate-fade-in delay-1">
+    <!-- Dataset Actions / Uploader -->
+    <div class="col-lg-5">
+        <div class="glass-card mb-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-cloud-arrow-up-fill text-primary me-2"></i>Upload Assessment Dataset</h5>
+            <p class="text-muted small">Select a CSV dataset with matching schema parameters to upload and set as the model training source.</p>
+            
+            {% if not session.logged_in %}
+            <div class="alert alert-warning border-0 small py-2 px-3 mb-3" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> Admin login required to upload datasets or trigger retraining.
+            </div>
+            {% endif %}
+            
+            <form id="uploadForm" class="mb-3">
+                <div class="mb-3">
+                    <input class="form-control form-control-custom" type="file" id="datasetFile" accept=".csv" {% if not session.logged_in %}disabled{% endif %} required>
+                </div>
+                <button type="submit" class="btn btn-custom btn-primary-custom w-100 py-2.5" {% if not session.logged_in %}disabled{% endif %}>
+                    <i class="bi bi-upload me-1"></i> Upload and Register CSV
+                </button>
+            </form>
+        </div>
+        
+        <div class="glass-card">
+            <h5 class="fw-bold mb-3"><i class="bi bi-gear-wide-connected text-primary me-2"></i>ML Pipeline Operations</h5>
+            <p class="text-muted small">Execute administrative retraining processes or revert back to standard synthetic credit profiles.</p>
+            <div class="d-flex flex-column gap-2">
+                <button onclick="triggerRetrain()" class="btn btn-custom btn-primary-custom" {% if not session.logged_in %}disabled{% endif %}>
+                    <i class="bi bi-arrow-repeat me-1"></i> Run Training Pipeline
+                </button>
+                <a href="{{ url_for('download_dataset') }}" class="btn btn-custom btn-secondary-custom">
+                    <i class="bi bi-download me-1"></i> Download Current Dataset
+                </a>
+                <button onclick="revertDataset()" class="btn btn-custom btn-outline-danger btn-custom border-danger border-opacity-35 mt-2" {% if not session.logged_in %}disabled{% endif %}>
+                    <i class="bi bi-trash-fill me-1"></i> Revert to Baseline Dataset
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistics & Summary reports -->
+    <div class="col-lg-7">
+        <div class="glass-card h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-file-earmark-bar-graph text-primary me-2"></i>Dataset Statistics Summary</h5>
+            
+            {% if stats %}
+            <div class="row g-3 mb-4 text-center">
+                <div class="col-6 col-md-4">
+                    <div class="p-3 rounded bg-secondary bg-opacity-5 border border-secondary border-opacity-5">
+                        <small class="text-muted d-block small">TOTAL RECORDS</small>
+                        <strong class="fs-5 text-primary">{{ stats.total_rows }}</strong>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="p-3 rounded bg-secondary bg-opacity-5 border border-secondary border-opacity-5">
+                        <small class="text-muted d-block small">TOTAL FEATURES</small>
+                        <strong class="fs-5 text-success">{{ stats.total_cols }}</strong>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="p-3 rounded bg-secondary bg-opacity-5 border border-secondary border-opacity-5">
+                        <small class="text-muted d-block small">MISSING CELL RATIO</small>
+                        <strong class="fs-5 text-warning">
+                            {% set ns = namespace(missing=0, total=0) %}
+                            {% for key, val in stats.missing_values.items() %}
+                                {% set ns.missing = ns.missing + val %}
+                                {% set ns.total = ns.total + stats.total_rows %}
+                            {% endfor %}
+                            {{ "%.2f".format((ns.missing / ns.total) * 100) }}%
+                        </strong>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Missing Values Mini Report -->
+            <h6 class="fw-bold text-main mb-2">Null / Missing Cell Breakdown</h6>
+            <div class="table-responsive table-responsive-custom mb-3" style="max-height:180px; overflow-y:auto;">
+                <table class="table table-custom table-hover small">
+                    <thead>
+                        <tr>
+                            <th>Feature Parameter</th>
+                            <th class="text-end">Null Cell Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for col, count in stats.missing_values.items() %}
+                        {% if count > 0 %}
+                        <tr>
+                            <td class="fw-semibold text-main">{{ col }}</td>
+                            <td class="text-end text-warning fw-bold">{{ count }}</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        <tr class="table-active">
+                            <td>All other features</td>
+                            <td class="text-end text-success">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center py-5">No dataset statistics loaded. Run retraining first.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Correlation Heatmap -->
+    {% if stats %}
+    <div class="col-12 animate-fade-in delay-2">
+        <div class="glass-card">
+            <h5 class="fw-bold mb-3"><i class="bi bi-grid-3x3 text-primary me-2"></i>Correlations Heatmap Matrix (Key Parameters)</h5>
+            <p class="text-muted small mb-4">Correlation coefficients between primary numerical metrics. High positive values are shaded green, negative values are shaded red.</p>
+            
+            {% set core_cols = ['Credit Score', 'Annual Income', 'Loan Amount', 'Debt-to-Income Ratio', 'Previous Loan Defaults', 'Savings Balance'] %}
+            <div class="table-responsive table-responsive-custom">
+                <table class="table table-custom text-center align-middle m-0 small">
+                    <thead>
+                        <tr>
+                            <th>Feature Name</th>
+                            {% for col in core_cols %}
+                            <th style="font-size:0.75rem;">{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row_col in core_cols %}
+                        <tr>
+                            <td class="text-start fw-bold text-main" style="font-size:0.8rem;">{{ row_col }}</td>
+                            {% for col in core_cols %}
+                                {% set coef = stats.correlation[row_col][col] %}
+                                <!-- Calculate heatmap colors: Green for positive, Red for negative -->
+                                {% if coef >= 0 %}
+                                    {% set alpha = coef %}
+                                    <td style="background-color: rgba(16, 185, 129, {{ alpha * 0.35 }}); color: var(--text-main); font-weight:700;">{{ coef }}</td>
+                                {% else %}
+                                    {% set alpha = coef|abs %}
+                                    <td style="background-color: rgba(239, 68, 68, {{ alpha * 0.35 }}); color: var(--text-main); font-weight:700;">{{ coef }}</td>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Handles dataset upload POST
+    const uploadForm = document.getElementById("uploadForm");
+    if (uploadForm) {
+        uploadForm.addEventListener("submit", function(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById("datasetFile");
+            const file = fileInput.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append("dataset", file);
+            
+            showToast("Uploading dataset...", "info");
+            
+            fetch("/datasets/upload", {
+                method: "POST",
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, "success");
+                    // Trigger retraining
+                    triggerRetrain();
+                } else {
+                    showToast(data.message, "danger");
+                }
+            })
+            .catch(err => {
+                showToast("Failed to connect to uploader", "danger");
+                console.error(err);
+            });
+        });
+    }
+    
+    function triggerRetrain() {
+        showToast("Model retraining initiated. Please wait...", "warning");
+        fetch("/datasets/retrain", { method: "POST" })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, "success");
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showToast(data.message, "danger");
+            }
+        })
+        .catch(err => {
+            showToast("Server error during retraining", "danger");
+            console.error(err);
+        });
+    }
+    
+    function revertDataset() {
+        if (!confirm("Are you sure you want to delete the current dataset and reset to baseline? Models will retrain.")) return;
+        showToast("Reverting dataset...", "warning");
+        fetch("/datasets/delete", { method: "POST" })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, "success");
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showToast(data.message, "danger");
+            }
+        })
+        .catch(err => {
+            showToast("Revert failed", "danger");
+            console.error(err);
+        });
+    }
+</script>
+{% endblock %}

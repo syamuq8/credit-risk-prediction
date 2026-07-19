@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Risk Prediction Certificate - {{ row.applicant_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #1e293b;
+        }
+        .cert-container {
+            max-width: 800px;
+            margin: 40px auto;
+            background: #ffffff;
+            border: 12px double #2563eb;
+            padding: 45px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border-radius: 4px;
+        }
+        .cert-header {
+            text-align: center;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 25px;
+            margin-bottom: 30px;
+        }
+        .cert-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 8rem;
+            font-weight: 900;
+            color: rgba(37, 99, 235, 0.03);
+            text-transform: uppercase;
+            pointer-events: none;
+            user-select: none;
+            z-index: 1;
+        }
+        .cert-seal {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 4px dashed #2563eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #2563eb;
+            font-size: 0.85rem;
+            transform: rotate(-15deg);
+            margin: auto;
+        }
+        @media print {
+            body {
+                background: none;
+                padding: 0;
+            }
+            .cert-container {
+                margin: 0;
+                border: 8px double #000000;
+                box-shadow: none;
+                width: 100%;
+                max-width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container py-2 text-end no-print" style="max-width: 800px;">
+        <button onclick="window.print()" class="btn btn-primary me-2"><i class="bi bi-printer-fill"></i> Print Certificate</button>
+        <a href="{{ url_for('history') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to History</a>
+    </div>
+
+    <div class="cert-container">
+        <div class="cert-watermark">FinGuard Bank</div>
+        
+        <div class="cert-header">
+            <div class="fs-6 text-primary fw-bold text-uppercase tracking-wider mb-1">Official Underwriting Department</div>
+            <h2 class="fw-bold m-0"><i class="bi bi-shield-fill-check text-primary me-1"></i> Credit Assessment Certificate</h2>
+            <div class="small text-muted mt-1">Verification Ref: Cert-{{ row.id[:8] if row.id|length > 8 else row.id }}</div>
+        </div>
+        
+        <div class="row g-4 mb-4">
+            <div class="col-md-7">
+                <h5 class="fw-bold border-bottom pb-2">Applicant Profile Details</h5>
+                <table class="table table-sm table-borderless small">
+                    <tr><td class="text-muted w-40">Full Name:</td><td><strong>{{ row.applicant_name }}</strong></td></tr>
+                    <tr><td class="text-muted">Age / Gender:</td><td>{{ row.age }} years old / {{ row.gender }}</td></tr>
+                    <tr><td class="text-muted">Annual Income:</td><td>{{ currency_symbol }}{{ row.annual_income.toLocaleString() }}</td></tr>
+                    <tr><td class="text-muted">Employment Status:</td><td>{{ row.employment_status }}</td></tr>
+                    <tr><td class="text-muted">Credit score (FICO):</td><td><strong>{{ row.credit_score }}</strong></td></tr>
+                </table>
+            </div>
+            
+            <div class="col-md-5">
+                <h5 class="fw-bold border-bottom pb-2">Requested Facility</h5>
+                <table class="table table-sm table-borderless small">
+                    <tr><td class="text-muted w-50">Loan Amount:</td><td><strong>{{ currency_symbol }}{{ row.loan_amount.toLocaleString() }}</strong></td></tr>
+                    <tr><td class="text-muted">Interest rate:</td><td>{{ row.interest_rate }}%</td></tr>
+                    <tr><td class="text-muted">Amortization Term:</td><td>{{ row.loan_term }} Months</td></tr>
+                    <tr><td class="text-muted">Purpose of funds:</td><td>{{ row.loan_purpose }}</td></tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="bg-light p-4 rounded border text-center mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <div class="small text-muted text-uppercase tracking-wider">Underwriting Verdict</div>
+                    <div class="fs-4 fw-bold {% if row.recommendation == 'Approve' %}text-success{% elif row.recommendation == 'Reject' %}text-danger{% else %}text-warning{% endif %}">
+                        {{ row.recommendation.upper() }}
+                    </div>
+                </div>
+                <div class="col-md-4 border-start border-end">
+                    <div class="small text-muted text-uppercase tracking-wider">Risk Classification</div>
+                    <div class="fs-5 fw-bold">{{ row.risk_level }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="small text-muted text-uppercase tracking-wider">Default Risk Probability</div>
+                    <div class="fs-4 fw-bold text-danger">{{ row.default_probability }}%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 pt-3">
+            <div class="col-md-4 text-center">
+                <div class="cert-seal">
+                    FINGUARD BANK<br>OFFICIAL SEAL
+                </div>
+            </div>
+            
+            <div class="col-md-4 text-center">
+                <div class="mt-4 pt-3 border-top small text-muted">
+                    Digital Audit Signature<br><strong>System AI Underwriter</strong>
+                </div>
+            </div>
+            
+            <div class="col-md-4 text-center">
+                <div class="mt-4 pt-3 border-top small text-muted">
+                    Date & Stamp of Issue<br><strong>{{ prediction_time }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

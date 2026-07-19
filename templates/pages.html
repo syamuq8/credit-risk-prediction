@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if page_key == 'faq' %}FAQ & Help Center
+    {% elif page_key == 'about' %}About Project
+    {% elif page_key == 'help' %}User Documentation
+    {% else %}System Health Monitor{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4 animate-fade-in">
+    <div class="col-md-10">
+        <h2>
+            {% if page_key == 'faq' %}FAQ & Underwriting Support
+            {% elif page_key == 'about' %}About credit Risk System
+            {% elif page_key == 'help' %}Technical Help Center
+            {% else %}Real-time System Monitor{% endif %}
+        </h2>
+        <p class="text-muted mb-0">
+            {% if page_key == 'faq' %}Frequently asked questions regarding banking risk policies and AI estimations.
+            {% elif page_key == 'about' %}Details on architecture models, pipeline parameters, and tech stacks.
+            {% elif page_key == 'help' %}Instructions for operation, data standards, and verification guidelines.
+            {% else %}Review active server threads, CPU allocations, and prediction file size profiles.{% endif %}
+        </p>
+    </div>
+</div>
+
+<div class="row justify-content-center animate-fade-in delay-1">
+    <div class="col-lg-10">
+        
+        <!-- 1. FAQ ACCORDION -->
+        {% if page_key == 'faq' %}
+        <div class="accordion faq-accordion" id="faqAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingOne">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                        How does the AI model evaluate default risk?
+                    </button>
+                </h2>
+                <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        The prediction engine utilizes a Gradient Boosting or XGBoost Classifier trained on historical applicant records. It measures credit profiles (FICO score, previous defaults) against financial metrics (DTI ratio, income, savings margin) to calculate the mathematical probability that an applicant will fail to repay.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingTwo">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                        What is Debt-to-Income (DTI) ratio and why does it matter?
+                    </button>
+                </h2>
+                <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        The DTI ratio represents the portion of an applicant's monthly income that is allocated to paying outstanding debts (credit cards, existing loans, proposed EMI). A DTI ratio exceeding 43% is generally flagged as high-risk, as it leaves minimal buffer for unexpected living expenses.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingThree">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                        How does model switching in the Model Center function?
+                    </button>
+                </h2>
+                <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        The Model Center saves separate serialized files for all trained classifiers (Logistic Regression, Decision Trees, Random Forests, XGBoost, SVM, and Gradient Boosting). When an admin activates a different model, the global Flask server releases the previous classifier from memory and binds the new model to live predictions instantly.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingFour">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                        How can applicants optimize their credit rating?
+                    </button>
+                </h2>
+                <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        Applicants can reduce default risk by paying off credit card balances (which lowers their credit utilization and improves DTI), increasing savings margins, maintaining employment tenure, and avoiding applying for multiple concurrent loans.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 2. ABOUT PROJECT -->
+        {% elif page_key == 'about' %}
+        <div class="glass-card">
+            <h5 class="fw-bold mb-3">Project Overview</h5>
+            <p class="text-muted">The <strong>Credit Risk Prediction System</strong> is built as a complete final-year machine learning research application. It combines custom data preprocessing, multi-model evaluation benchmarking, explainable AI explanations (local feature attributions), and secure record management to build a professional fintech decision support dashboard.</p>
+            
+            <h5 class="fw-bold mt-4 mb-3">Tech Stack Specifications</h5>
+            <div class="row g-3 text-center mb-4">
+                <div class="col-6 col-md-3"><div class="p-3 rounded bg-secondary bg-opacity-5 border"><strong class="text-primary d-block">Python Flask</strong><small class="text-muted">Web Backend</small></div></div>
+                <div class="col-6 col-md-3"><div class="p-3 rounded bg-secondary bg-opacity-5 border"><strong class="text-success d-block">Scikit-Learn</strong><small class="text-muted">ML Pipelines</small></div></div>
+                <div class="col-6 col-md-3"><div class="p-3 rounded bg-secondary bg-opacity-5 border"><strong class="text-info d-block">SQLite3</strong><small class="text-muted">Relational Database</small></div></div>
+                <div class="col-6 col-md-3"><div class="p-3 rounded bg-secondary bg-opacity-5 border"><strong class="text-warning d-block">Chart.js</strong><small class="text-muted">Frontend Visuals</small></div></div>
+            </div>
+            
+            <h5 class="fw-bold mb-3">Core Algorithms Trained</h5>
+            <ul class="list-group list-group-flush small" style="background:transparent;">
+                <li class="list-group-item px-0 py-2 border-secondary border-opacity-10 text-muted" style="background:transparent;"><strong>Gradient Boosting Classifier</strong>: High performance ensemble method (Default active model).</li>
+                <li class="list-group-item px-0 py-2 border-secondary border-opacity-10 text-muted" style="background:transparent;"><strong>XGBoost Classifier</strong>: State-of-the-art tree boosting classifier.</li>
+                <li class="list-group-item px-0 py-2 border-secondary border-opacity-10 text-muted" style="background:transparent;"><strong>Random Forest Classifier</strong>: Bagging tree estimator with robust generalization.</li>
+                <li class="list-group-item px-0 py-2 border-secondary border-opacity-10 text-muted" style="background:transparent;"><strong>Logistic Regression</strong>: Baseline statistical linear model.</li>
+            </ul>
+        </div>
+        
+        <!-- 3. SYSTEM HEALTH MONITOR -->
+        {% else %}
+        <div class="glass-card mb-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-heart-pulse-fill text-danger me-2"></i>Performance Indicators</h5>
+            <div class="d-flex align-items-center gap-2 mb-4">
+                <span class="health-dot"></span>
+                <strong class="text-success">SYSTEM HEALTHY - ALL ENDPOINTS COMPILATION OK</strong>
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-md-6 col-lg-3">
+                    <div class="p-3 rounded bg-secondary bg-opacity-5 border border-secondary border-opacity-5 text-center">
+                        <small class="text-muted d-block small mb-1">CPU LOAD</small>
+                        <strong class="fs-4 text-primary">{{ health.cpu_usage }}%</strong>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="p-3 rounded bg-secondary bg-opacity-5 border border-secondary border-opacity-5 text-center">
+                        <small class="text-muted d-block small mb-1">MEMORY USAGE</small>
+                        <strong class="fs-4 text-success">{{ health.ram_usage }}%</strong>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="p-3 rounded bg-secondary bg-opacity-5 border border-secondary border-opacity-5 text-center">
+                        <small class="text-muted d-block small mb-1">DATABASE SIZE</small>
+                        <strong class="fs-4 text-warning">{{ health.db_size_kb }} KB</strong>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="p-3 rounded bg-secondary bg-opacity-5 border border-secondary border-opacity-5 text-center">
+                        <small class="text-muted d-block small mb-1">SERIALIZED MODELS</small>
+                        <strong class="fs-4 text-info">{{ health.models_trained_count }} pickles</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="glass-card">
+            <h5 class="fw-bold mb-3">Environment Specs</h5>
+            <div class="row g-2 small text-muted">
+                <div class="col-6">Python Compiler:</div><div class="col-6 text-main fw-semibold">Python v{{ health.python_version }}</div>
+                <div class="col-6">Web Server:</div><div class="col-6 text-main fw-semibold">Flask Development Server</div>
+                <div class="col-6">Database Driver:</div><div class="col-6 text-main fw-semibold">SQLite3 / sqlite3.dll</div>
+                <div class="col-6">Server Uptime:</div><div class="col-6 text-main fw-semibold">{{ health.uptime }}</div>
+                <div class="col-6">SSL Security:</div><div class="col-6 text-main fw-semibold">Disabled (Localhost Only)</div>
+            </div>
+        </div>
+        {% endif %}
+        
+    </div>
+</div>
+{% endblock %}

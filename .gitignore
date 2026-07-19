@@ -1,0 +1,23 @@
+# Python Compiled Files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Databases
+credit_risk.db
+credit_risk.db-journal
+
+# Mock Email Outbox
+mail_outbox/
+
+# Local model checkpoint cache (if any)
+.ipynb_checkpoints/
+.vscode/
+.idea/

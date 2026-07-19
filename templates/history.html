@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Assessment History Log{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4 animate-fade-in">
+    <div class="col-md-7">
+        <h2>Assessment History Log</h2>
+        <p class="text-muted mb-0">Browse, search, sort, and export credit risk predictions from the SQLite database.</p>
+    </div>
+    <div class="col-md-5 text-md-end mt-3 mt-md-0 d-flex gap-2 justify-content-md-end search-filter-row">
+        <button onclick="exportSelectedRecords()" class="btn btn-custom btn-secondary-custom">
+            <i class="bi bi-file-earmark-spreadsheet-fill me-1 text-success"></i> Export Selected
+        </button>
+        <button onclick="window.print()" class="btn btn-custom btn-primary-custom">
+            <i class="bi bi-printer-fill me-1"></i> Print / PDF Log
+        </button>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="glass-card mb-4 animate-fade-in delay-1 search-filter-row">
+    <form action="{{ url_for('history') }}" method="GET" class="row g-3">
+        <div class="col-md-4 col-lg-5">
+            <label for="search" class="form-label form-label-custom">Applicant Search</label>
+            <div class="input-group">
+                <span class="input-group-text border-end-0 bg-transparent text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control form-control-custom border-start-0" id="search" name="search" placeholder="Search by name..." value="{{ search_query }}">
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-3">
+            <label for="risk" class="form-label form-label-custom">Risk Rating</label>
+            <select class="form-select form-select-custom" id="risk" name="risk">
+                <option value="">All Risk Ratings</option>
+                <option value="Low Risk" {% if filter_risk == 'Low Risk' %}selected{% endif %}>Low Risk</option>
+                <option value="Medium Risk" {% if filter_risk == 'Medium Risk' %}selected{% endif %}>Medium Risk</option>
+                <option value="High Risk" {% if filter_risk == 'High Risk' %}selected{% endif %}>High Risk</option>
+            </select>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <label for="sort" class="form-label form-label-custom">Sort By</label>
+            <select class="form-select form-select-custom" id="sort" name="sort">
+                <option value="prediction_date" {% if sort_by == 'prediction_date' %}selected{% endif %}>Date</option>
+                <option value="credit_score" {% if sort_by == 'credit_score' %}selected{% endif %}>Credit Score</option>
+                <option value="loan_amount" {% if sort_by == 'loan_amount' %}selected{% endif %}>Loan Amount</option>
+                <option value="default_probability" {% if sort_by == 'default_probability' %}selected{% endif %}>Risk Probability</option>
+            </select>
+        </div>
+        <div class="col-md-12 col-lg-2 d-flex align-items-end gap-2">
+            <button type="submit" class="btn btn-custom btn-primary-custom w-100 py-2">
+                <i class="bi bi-filter me-1"></i> Apply
+            </button>
+            {% if search_query or filter_risk or sort_by != 'prediction_date' %}
+            <a href="{{ url_for('history') }}" class="btn btn-custom btn-secondary-custom py-2">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- History Data Log -->
+<div class="glass-card animate-fade-in delay-2 px-0 py-1">
+    <div class="table-responsive">
+        <table class="table table-custom table-hover m-0">
+            <thead>
+                <tr>
+                    <th width="40" class="text-center search-filter-row">
+                        <input type="checkbox" class="form-check-input" onclick="toggleSelectAll(this)" style="cursor:pointer;">
+                    </th>
+                    <th>Date</th>
+                    <th>Customer Name</th>
+                    <th>FICO</th>
+                    <th>Loan Request</th>
+                    <th>DTI</th>
+                    <th class="text-center">Risk Level</th>
+                    <th class="text-end">Prob.</th>
+                    <th class="text-end search-filter-row">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in predictions %}
+                <tr id="row-{{ row.id }}">
+                    <td class="text-center search-filter-row">
+                        <input type="checkbox" class="form-check-input record-checkbox" value="{{ row.id }}" style="cursor:pointer;">
+                    </td>
+                    <td class="text-muted small">{{ row.prediction_date[:16] }}</td>
+                    <td class="fw-semibold">{{ row.applicant_name }}</td>
+                    <td><span class="badge bg-secondary bg-opacity-10 text-secondary">{{ row.credit_score }}</span></td>
+                    <td>{{ currency_symbol }}{{ "{:,.0f}".format(row.loan_amount) }} <small class="text-muted">({{ row.loan_purpose }})</small></td>
+                    <td>{{ "%.2f".format(row.dti) }}</td>
+                    <td class="text-center">
+                        <span class="badge-custom badge-risk-{{ row.badge }}">{{ row.risk_level }}</span>
+                    </td>
+                    <td class="text-end fw-bold text-{{ row.badge }}">{{ row.default_probability }}%</td>
+                    <td class="text-end search-filter-row">
+                        <div class="btn-group">
+                            <button onclick="viewRecordDetails('{{ row.id }}')" class="btn btn-sm btn-outline-primary" title="Quick View"><i class="bi bi-eye-fill"></i></button>
+                            <a href="{{ url_for('view_report', id=row.id) }}" class="btn btn-sm btn-outline-secondary" title="View Full Report"><i class="bi bi-file-earmark-pdf-fill text-danger"></i></a>
+                            <button onclick="deleteRecord('{{ row.id }}', 'row-{{ row.id }}')" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash-fill"></i></button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center py-5 text-muted">
+                        <i class="bi bi-folder-x fs-1 mb-2 d-block"></i> No records found in prediction history database.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination Footer -->
+    {% if total_pages > 1 %}
+    <div class="px-4 py-3 d-flex align-items-center justify-content-between border-top border-secondary border-opacity-5 search-filter-row">
+        <small class="text-muted">Showing page {{ page }} of {{ total_pages }} ({{ total_records }} entries)</small>
+        <nav>
+            <ul class="pagination pagination-sm m-0 gap-1">
+                <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                    <a class="page-link border-0 rounded bg-secondary bg-opacity-5 text-main" href="{{ url_for('history', page=page-1, search=search_query, risk=filter_risk, sort=sort_by, order=order) }}"><i class="bi bi-chevron-left"></i></a>
+                </li>
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link border-0 rounded {% if p == page %}bg-primary text-white{% else %}bg-secondary bg-opacity-5 text-main{% endif %}" href="{{ url_for('history', page=p, search=search_query, risk=filter_risk, sort=sort_by, order=order) }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+                <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                    <a class="page-link border-0 rounded bg-secondary bg-opacity-5 text-main" href="{{ url_for('history', page=page+1, search=search_query, risk=filter_risk, sort=sort_by, order=order) }}"><i class="bi bi-chevron-right"></i></a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Details Popup Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content glass-card p-0 border-0 overflow-hidden" style="background-color: var(--bg-card); border-radius: 16px;">
+            <div class="modal-header border-bottom border-secondary border-opacity-5 px-4 py-3 d-flex justify-content-between align-items-center">
+                <h5 class="modal-title fw-bold text-main" id="detailsModalLabel"><i class="bi bi-shield-shaded text-primary me-2"></i>Assessment Profile Details</h5>
+                <button type="button" class="btn-close text-main" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="detailsModalBody">
+                <!-- Loaded dynamically by main.js -->
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-5 px-4 py-3">
+                <button type="button" class="btn btn-custom btn-secondary-custom" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

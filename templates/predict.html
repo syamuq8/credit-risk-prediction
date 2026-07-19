@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Credit Risk Assessment{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mb-4 animate-fade-in">
+    <div class="col-xl-10">
+        <h2>New Credit Risk Assessment</h2>
+        <p class="text-muted">Enter applicant demographic, financial, and credit history details below to generate an AI risk prediction.</p>
+    </div>
+</div>
+
+<!-- Scenario Profiles Quick Load -->
+<div class="row justify-content-center mb-4 animate-fade-in delay-1">
+    <div class="col-xl-10">
+        <div class="glass-card border border-primary border-opacity-10" style="background-color: var(--primary-glow);">
+            <div class="d-md-flex align-items-center justify-content-between">
+                <div>
+                    <h6 class="fw-bold mb-1"><i class="bi bi-lightning-charge-fill text-harlequin me-2"></i>Quick-Test Profiles</h6>
+                    <small class="text-muted">Populate the forms with preset applicant profiles for immediate verification.</small>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-3 mt-md-0">
+                    <button type="button" class="btn btn-sm btn-custom btn-secondary-custom border-success border-opacity-30 btn-autofill-low" onclick="autofillForm('low')">
+                        <i class="bi bi-person-check-fill text-success me-1"></i> Low Risk (Jane)
+                    </button>
+                    <button type="button" class="btn btn-sm btn-custom btn-secondary-custom border-warning border-opacity-30 btn-autofill-medium" onclick="autofillForm('medium')">
+                        <i class="bi bi-person-exclamation-fill text-warning me-1"></i> Medium Risk (Marcus)
+                    </button>
+                    <button type="button" class="btn btn-sm btn-custom btn-secondary-custom border-danger border-opacity-30 btn-autofill-high" onclick="autofillForm('high')">
+                        <i class="bi bi-person-x-fill text-danger me-1"></i> High Risk (Victor)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Input Form -->
+<div class="row justify-content-center animate-fade-in delay-2">
+    <div class="col-xl-10">
+        {% if error %}
+        <div class="alert alert-danger border-0 glass-card bg-danger bg-opacity-10 text-danger mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ error }}
+        </div>
+        {% endif %}
+        
+        <form action="{{ url_for('predict') }}" method="POST" class="glass-card p-4">
+            <!-- Section 1: Demographics -->
+            <h5 class="fw-bold mb-3 pb-2 border-bottom border-secondary border-opacity-10">
+                <i class="bi bi-person-badge-fill text-primary me-2"></i>Demographics & Personal Details
+            </h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label for="applicant_name" class="form-label form-label-custom">Applicant Full Name</label>
+                    <input type="text" class="form-control form-control-custom" id="applicant_name" name="applicant_name" placeholder="e.g. John Doe" required>
+                </div>
+                <div class="col-md-2">
+                    <label for="age" class="form-label form-label-custom">Age (Years)</label>
+                    <input type="number" class="form-control form-control-custom" id="age" name="age" min="18" max="95" placeholder="35" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="gender" class="form-label form-label-custom">Gender</label>
+                    <select class="form-select form-select-custom" id="gender" name="gender" required>
+                        <option value="" disabled selected>Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Non-Binary">Non-Binary</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="education" class="form-label form-label-custom">Education Level</label>
+                    <select class="form-select form-select-custom" id="education" name="education" required>
+                        <option value="" disabled selected>Select Education</option>
+                        <option value="High School">High School</option>
+                        <option value="Associate">Associate Degree</option>
+                        <option value="Bachelor">Bachelor's Degree</option>
+                        <option value="Master">Master's Degree</option>
+                        <option value="Doctorate">Doctorate Degree</option>
+                    </select>
+                </div>
+                <div class="col-md-4 col-lg-3">
+                    <label for="marital_status" class="form-label form-label-custom">Marital Status</label>
+                    <select class="form-select form-select-custom" id="marital_status" name="marital_status" required>
+                        <option value="" disabled selected>Select Status</option>
+                        <option value="Single">Single</option>
+                        <option value="Married">Married</option>
+                        <option value="Divorced">Divorced</option>
+                        <option value="Widowed">Widowed</option>
+                    </select>
+                </div>
+                <div class="col-md-4 col-lg-3">
+                    <label for="dependents" class="form-label form-label-custom">Dependents Count</label>
+                    <input type="number" class="form-control form-control-custom" id="dependents" name="dependents" min="0" max="10" placeholder="0" required>
+                </div>
+            </div>
+
+            <!-- Section 2: Finances -->
+            <h5 class="fw-bold mb-3 pb-2 border-bottom border-secondary border-opacity-10">
+                <i class="bi bi-wallet2 text-primary me-2"></i>Financial & Employment Standing
+            </h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <label for="employment_status" class="form-label form-label-custom">Employment Status</label>
+                    <select class="form-select form-select-custom" id="employment_status" name="employment_status" required>
+                        <option value="" disabled selected>Select Status</option>
+                        <option value="Employed">Employed</option>
+                        <option value="Self-Employed">Self-Employed</option>
+                        <option value="Retired">Retired</option>
+                        <option value="Unemployed">Unemployed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="years_employment" class="form-label form-label-custom">Years of Employment</label>
+                    <input type="number" class="form-control form-control-custom" id="years_employment" name="years_employment" min="0" max="60" step="0.1" placeholder="5.5" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="annual_income" class="form-label form-label-custom">Annual Income ({{ currency_symbol }})</label>
+                    <input type="number" class="form-control form-control-custom" id="annual_income" name="annual_income" min="0" placeholder="60000" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="monthly_expenses" class="form-label form-label-custom">Monthly Expenses ({{ currency_symbol }})</label>
+                    <input type="number" class="form-control form-control-custom" id="monthly_expenses" name="monthly_expenses" min="0" placeholder="2000" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="property_ownership" class="form-label form-label-custom">Property Ownership</label>
+                    <select class="form-select form-select-custom" id="property_ownership" name="property_ownership" required>
+                        <option value="" disabled selected>Select Ownership</option>
+                        <option value="Own">Own Outright</option>
+                        <option value="Mortgage">Mortgage</option>
+                        <option value="Rent">Rent</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="savings_balance" class="form-label form-label-custom">Savings Account Balance ({{ currency_symbol }})</label>
+                    <input type="number" class="form-control form-control-custom" id="savings_balance" name="savings_balance" min="0" placeholder="8000" required>
+                </div>
+            </div>
+
+            <!-- Section 3: Credit History -->
+            <h5 class="fw-bold mb-3 pb-2 border-bottom border-secondary border-opacity-10">
+                <i class="bi bi-clock-history text-primary me-2"></i>Credit & Debt History
+            </h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <label for="credit_score" class="form-label form-label-custom">Credit Score (FICO)</label>
+                    <input type="number" class="form-control form-control-custom" id="credit_score" name="credit_score" min="300" max="850" placeholder="300-850" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="dti" class="form-label form-label-custom">Debt-to-Income (DTI) Ratio</label>
+                    <input type="number" class="form-control form-control-custom" id="dti" name="dti" min="0" max="1" step="0.01" placeholder="0.25" required>
+                </div>
+                <div class="col-md-2">
+                    <label for="existing_loans" class="form-label form-label-custom">Existing Loans</label>
+                    <input type="number" class="form-control form-control-custom" id="existing_loans" name="existing_loans" min="0" max="15" placeholder="0" required>
+                </div>
+                <div class="col-md-2">
+                    <label for="credit_cards" class="form-label form-label-custom">Credit Cards Count</label>
+                    <input type="number" class="form-control form-control-custom" id="credit_cards" name="credit_cards" min="0" max="25" placeholder="0" required>
+                </div>
+                <div class="col-md-2">
+                    <label for="previous_defaults" class="form-label form-label-custom">Previous Defaults</label>
+                    <input type="number" class="form-control form-control-custom" id="previous_defaults" name="previous_defaults" min="0" max="10" placeholder="0" required>
+                </div>
+            </div>
+
+            <!-- Section 4: Requested Loan -->
+            <h5 class="fw-bold mb-3 pb-2 border-bottom border-secondary border-opacity-10">
+                <i class="bi bi-bank text-primary me-2"></i>Requested Loan Parameters
+            </h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label for="loan_amount" class="form-label form-label-custom">Requested Loan Amount ({{ currency_symbol }})</label>
+                    <input type="number" class="form-control form-control-custom" id="loan_amount" name="loan_amount" min="1000" placeholder="15000" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="loan_purpose" class="form-label form-label-custom">Loan Purpose</label>
+                    <select class="form-select form-select-custom" id="loan_purpose" name="loan_purpose" required>
+                        <option value="" disabled selected>Select Purpose</option>
+                        <option value="Debt Consolidation">Debt Consolidation</option>
+                        <option value="Home Improvement">Home Improvement</option>
+                        <option value="Education">Education</option>
+                        <option value="Auto">Auto</option>
+                        <option value="Business">Business</option>
+                        <option value="Personal">Personal</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="interest_rate" class="form-label form-label-custom">Interest Rate (%)</label>
+                    <input type="number" class="form-control form-control-custom" id="interest_rate" name="interest_rate" min="1" max="40" step="0.01" placeholder="6.5" required>
+                </div>
+                <div class="col-md-2">
+                    <label for="loan_term" class="form-label form-label-custom">Loan Term (Months)</label>
+                    <select class="form-select form-select-custom" id="loan_term" name="loan_term" required>
+                        <option value="" disabled selected>Select Term</option>
+                        <option value="12">12 Months</option>
+                        <option value="24">24 Months</option>
+                        <option value="36">36 Months</option>
+                        <option value="60">60 Months</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="text-end pt-3">
+                <button type="reset" class="btn btn-custom btn-secondary-custom me-2">Reset Assessment</button>
+                <button type="submit" class="btn btn-custom btn-primary-custom">
+                    <i class="bi bi-shield-shaded me-1"></i> Analyze Risk Profile
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

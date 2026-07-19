@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Model Management Center{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-4 animate-fade-in">
+    <div class="col-md-9">
+        <h2>Model Operations Center</h2>
+        <p class="text-muted mb-0">Switch prediction engines globally, inspect training date logs, and check performance scores.</p>
+    </div>
+</div>
+
+<div class="row g-4 animate-fade-in delay-1">
+    <!-- Active Model Profile Widget -->
+    <div class="col-12">
+        <div class="glass-card d-flex align-items-center justify-content-between border-primary border-opacity-10" style="background-color: var(--primary-glow);">
+            <div>
+                <span class="badge bg-primary text-white mb-2" style="font-size:0.7rem; font-weight:700;">CURRENT ACTIVE PIPELINE</span>
+                <h3 class="fw-bold text-main mb-1" id="activeModelDisplayName">
+                    {% for comp in comparisons %}
+                        {% if comp.Model.lower().replace(' ', '_') == active_model_key %}
+                            {{ comp.Model }}
+                        {% endif %}
+                    {% endfor %}
+                </h3>
+                <p class="small text-muted mb-0">Active since training compilation. Handles all live user credit query inferences.</p>
+            </div>
+            <div class="kpi-icon fs-3">
+                <i class="bi bi-cpu-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Models List Grid -->
+    {% if not session.logged_in %}
+    <div class="col-12">
+        <div class="alert alert-warning border-0 small py-2.5 px-3 mb-0" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> Admin login required to modify active model selection settings.
+        </div>
+    </div>
+    {% endif %}
+    
+    {% for comp in comparisons %}
+    {% set key = comp.Model.lower().replace(' ', '_') %}
+    <div class="col-md-6 col-xl-4">
+        <div class="glass-card h-100 d-flex flex-column justify-content-between p-4 {% if key == active_model_key %}border-primary{% endif %}">
+            <div>
+                <div class="d-flex align-items-start justify-content-between mb-3">
+                    <h5 class="fw-bold text-main mb-0">{{ comp.Model }}</h5>
+                    {% if key == active_model_key %}
+                    <span class="badge bg-primary text-white" style="font-size:0.65rem;">ACTIVE</span>
+                    {% endif %}
+                </div>
+                
+                <div class="row g-2 small text-muted border-bottom border-secondary border-opacity-5 pb-3 mb-3">
+                    <div class="col-7">F1 Score Accuracy:</div><div class="col-5 text-main text-end fw-semibold">{{ "%.3f".format(comp['F1 Score']) }}</div>
+                    <div class="col-7">ROC-AUC Value:</div><div class="col-5 text-main text-end fw-semibold">{{ "%.3f".format(comp['ROC-AUC']) }}</div>
+                    <div class="col-7">Accuracy Score:</div><div class="col-5 text-main text-end fw-semibold">{{ "%.1f".format(comp.Accuracy * 100) }}%</div>
+                    <div class="col-7">Compiled Date:</div><div class="col-5 text-main text-end fw-semibold" style="font-size:0.75rem;">{{ comp['Training Date'][:10] }}</div>
+                </div>
+                
+                <div class="row g-1 text-center small text-muted mb-2">
+                    <div class="col-4 border-end border-secondary border-opacity-5"><small class="d-block text-muted" style="font-size:0.65rem;">PRECISION</small><strong class="text-main">{{ "%.3f".format(comp.Precision) }}</strong></div>
+                    <div class="col-4 border-end border-secondary border-opacity-5"><small class="d-block text-muted" style="font-size:0.65rem;">RECALL</small><strong class="text-main">{{ "%.3f".format(comp.Recall) }}</strong></div>
+                    <div class="col-4"><small class="d-block text-muted" style="font-size:0.65rem;">TEST SIZE</small><strong class="text-main">{{ comp['Dataset Size'] }}</strong></div>
+                </div>
+            </div>
+            
+            <div class="pt-3 border-top border-secondary border-opacity-5 mt-3">
+                {% if key == active_model_key %}
+                <button type="button" class="btn btn-sm btn-custom btn-secondary-custom w-100" disabled>Already Active</button>
+                {% else %}
+                <button type="button" onclick="switchActiveModel('{{ key }}')" class="btn btn-sm btn-custom btn-primary-custom w-100" {% if not session.logged_in %}disabled{% endif %}>
+                    <i class="bi bi-arrow-repeat me-1"></i> Activate Engine
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function switchActiveModel(modelKey) {
+        showToast("Switching active model...", "warning");
+        
+        const params = new URLSearchParams();
+        params.append("model_key", modelKey);
+        
+        fetch("/models/switch", {
+            method: "POST",
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, "success");
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showToast(data.message, "danger");
+            }
+        })
+        .catch(err => {
+            showToast("Server error switching model", "danger");
+            console.error(err);
+        });
+    }
+</script>
+{% endblock %}
