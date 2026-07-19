@@ -1,7 +1,10 @@
 import os
 import datetime
 
-OUTBOX_DIR = 'mail_outbox'
+if 'VERCEL' in os.environ or 'AWS_LAMBDA_FUNCTION_NAME' in os.environ:
+    OUTBOX_DIR = '/tmp/mail_outbox'
+else:
+    OUTBOX_DIR = 'mail_outbox'
 
 def send_report_email(recipient_email, applicant_name, result):
     """

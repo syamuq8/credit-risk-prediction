@@ -527,7 +527,7 @@ def login():
         database.db_log_action('viewer', 'Viewer', 'User Login', 'Viewer authenticated successfully')
         return redirect(url_for('dashboard'))
     else:
-        return render_template('login.html', error='Invalid credentials. Use admin/admin.')
+        return render_template('login.html', error='Invalid credentials.')
 
 @app.route('/logout')
 def logout():

@@ -15,7 +15,10 @@ except ImportError:
 ENV_DB_ENGINE = os.environ.get('DB_ENGINE', '').lower()
 MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
 DB_NAME = os.environ.get('DB_NAME', 'credit_risk_db')
-SQLITE_PATH = 'credit_risk.db'
+if 'VERCEL' in os.environ or 'AWS_LAMBDA_FUNCTION_NAME' in os.environ:
+    SQLITE_PATH = '/tmp/credit_risk.db'
+else:
+    SQLITE_PATH = 'credit_risk.db'
 
 # Attempt MongoDB Connection
 mongo_client = None
