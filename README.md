@@ -1,5 +1,7 @@
 # Credit Risk Prediction System
 
+> **Live Demo URL**: [https://credit-risk-prediction.onrender.com](https://credit-risk-prediction.onrender.com)
+
 An AI-powered banking-style web application designed to evaluate loan applicant default risks. The system leverages multiple machine learning models (Logistic Regression, Decision Trees, Random Forests, Support Vector Machines, XGBoost, and Gradient Boosting) to classify applicants into **Low Risk**, **Medium Risk**, or **High Risk** categories. It also provides predictions, decision confidence, Explainable AI (XAI) feature contributions, and custom credit-optimization suggestions.
 
 ---
@@ -205,86 +207,6 @@ Configure the following settings in your platform dashboard:
    - `DB_ENGINE`: `sqlite` or `mongodb` depending on your selected storage engine.
    - `MONGO_URI`: Connection string pointing to your Atlas MongoDB clusters (e.g., `mongodb+srv://...` if using MongoDB).
 
----
-
-## ⚡ Vercel Deployment Guide
-
-This project is fully optimized for serverless deployments on **Vercel** (with no credit card verification required).
-
-### Vercel Configuration Details
-- A [vercel.json](file:///C:/Users/pisin/.gemini/antigravity/scratch/credit-risk-prediction/vercel.json) file has been configured in the root directory to route serverless requests to the Flask instance.
-- Filesystem write processes are automatically redirected to the Vercel-compatible `/tmp` directory at runtime to prevent permission crashes.
-
-### Deployment Steps
-1. **Install Vercel CLI** (requires Node.js):
-   ```bash
-   npm install -g vercel
-   ```
-2. **Deploy & Link**: Run the following command inside the project directory:
-   ```bash
-   vercel
-   ```
-   Follow the prompts to log in and set up your project.
-3. **Configure Environment Variables**:
-   In your Vercel project settings dashboard, add:
-   - `FLASK_SECRET_KEY`: A secure random secret key.
-   - `DB_ENGINE`: `sqlite` (or `mongodb` to connect to a free MongoDB Atlas cloud cluster for permanent data persistence).
-4. **Deploy Live**:
-   ```bash
-   vercel --prod
-   ```
-
----
-
-## ☁️ Koyeb Deployment Guide
-
-This project is fully ready for containerized deployment on **Koyeb**'s free tier.
-
-### Deployment Steps
-1. Go to **[Koyeb Dashboard](https://app.koyeb.com)** and sign in.
-2. Click **Create Service**.
-3. Select **GitHub** as the deployment source and choose your `credit-risk-prediction` repository.
-4. Configure the service settings:
-   - **Builder**: Select `Buildpack` (automatic detection).
-   - **Build Command**: 
-     ```bash
-     pip install -r requirements.txt && python generate_data.py && python train_model.py
-     ```
-   - **Run Command**: 
-     ```bash
-     gunicorn app:app
-     ```
-5. Add the following **Environment Variables**:
-   - `FLASK_SECRET_KEY`: A secure random secret key.
-   - `DB_ENGINE`: `sqlite` (or `mongodb` for permanent persistence).
-   - `MONGO_URI`: MongoDB Atlas connection string (if using MongoDB).
-6. Choose the **Free Nano Instance** and click **Deploy**.
-
----
-
-## 🚂 Railway Deployment Guide
-
-This project is fully ready for containerized deployment on **Railway**.
-
-### Deployment Steps
-1. Go to **[Railway Dashboard](https://railway.app)** and log in using GitHub.
-2. Click **+ New Project** and select **Deploy from GitHub repo**.
-3. Choose your `credit-risk-prediction` repository.
-4. Click **Deploy Now**.
-5. Once created, go to the **Settings** tab of the service:
-   - Under **Build Command**, input:
-     ```bash
-     pip install -r requirements.txt && python generate_data.py && python train_model.py
-     ```
-   - Under **Start Command**, verify it uses:
-     ```bash
-     gunicorn app:app
-     ```
-6. Go to the **Variables** tab and click **Add Variable**:
-   - `FLASK_SECRET_KEY`: A secure random secret key.
-   - `DB_ENGINE`: `sqlite` (or `mongodb` for permanent persistence).
-   - `MONGO_URI`: MongoDB Atlas connection string (if using MongoDB).
-7. Under the **Settings** tab in the **Networking** section, click **Generate Domain** to get your public HTTPS URL.
 
 ---
 
